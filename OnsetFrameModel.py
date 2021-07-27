@@ -21,26 +21,29 @@ def conv_net(inputs):
     net = Dropout(configs.fc_dropout_keep_amt)(net)
     return net
 
-
-def acoustic_model(inputs, lstm_units):
-    """Acoustic model that handles all specs for a sequence in one window."""
-    conv_output = conv_net(inputs)
-    if lstm_units:
-        return Bidirectional(LSTM(lstm_units))(conv_output)
-
-    else:
-        return conv_output
-
-def model_fn(inputs, labels=None, mode=None):
+def model_fn(inputs,is_training=True):
     """Builds the acoustic model."""
-    
     #Onset
-    onset_outputs = acoustic_model(inputs,
-          lstm_units=configs.onset_lstm_units)
-    onset_probs = Dense(
-          configs.MIDI_PITCHES,
-          activation="sigmoid")(onset_outputs)
-    return onset_probs
+    onset_stack = conv_net(inputs)
+    onset_stack = Bidirectional(LSTM(configs.onset_lstm_units, return_sequences=True))(onset_stack)
+    onset_stack = Dense(configs.MIDI_PITCHES, activation="sigmoid")(onset_stack) 
+    #Frame
+    frame_stack = conv_net(inputs)
+    frame_stack = Dense(configs.MIDI_PITCHES, activation="sigmoid")(frame_stack) 
+    #Concat
+    concat_inputs = tf.keras.layers.Concatenate()([tf.stop_gradient(onset_stack), frame_stack])
+    combined_stack = Bidirectional(LSTM(configs.onset_lstm_units))(concat_inputs)
+    combined_stack = Dense(configs.MIDI_PITCHES, activation="sigmoid")(combined_stack) 
+
+
+    # activation_outputs = acoustic_model(
+    #         inputs,
+    #         lstm_units=0)
+    # activation_probs = Dense(
+    #         constants.MIDI_PITCHES,
+    #         activation="sigmoid")(activation_outputs)
+    
+    return combined_stack
     
 
 
