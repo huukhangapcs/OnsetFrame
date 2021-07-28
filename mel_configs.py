@@ -1,0 +1,9 @@
+noise_scale = 0.05
+window_length_seconds = 0.025
+hop_length_seconds = 0.01
+sample_rate = 16000
+num_mel_bins = 64
+lower_edge_hz = 100
+upper_edge_hz = 7000
+frame_width = 96
+frame_hop = 10
